@@ -8,6 +8,21 @@ app.use(express.json());
 
 const customers = [];
 
+//Middleware
+function verifyIfExistsAccountCPF(request, response, next) {
+  const { cpf } = request.headers;
+
+  const customer = customers.find((customer) => customer.cpf === cpf);
+
+  if (!customer) {
+    return response.status(400).json({ error: 'Customer not found' });
+  }
+
+  request.customer = customer;
+
+  return next();
+}
+
 app.post('/account', (request, response) => {
   const { cpf, name } = request.body;
 
@@ -31,14 +46,11 @@ app.post('/account', (request, response) => {
   return response.status(201).send();
 });
 
-app.get('/statement', (request, response) => {
-  const { cpf } = request.headers;
+// app.use(verifyIfExistsAccountCPF) todas rotas a partir daqui utilizarão o middleware passado para função use
 
-  const customer = customers.find((customer) => customer.cpf === cpf);
-
-  if (!customer) {
-    return response.status(400).json({ error: 'Customer not found' });
-  }
+// Passando o middleware somente dentro desta rota
+app.get('/statement', verifyIfExistsAccountCPF, (request, response) => {
+  const { customer } = request;
 
   return response.json(customer.statement);
 });
